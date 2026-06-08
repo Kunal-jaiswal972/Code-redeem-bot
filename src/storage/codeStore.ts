@@ -3,7 +3,6 @@ import path from "node:path";
 import { z } from "zod";
 import {
   CodeStatus,
-  GameId,
   RedeemStatus,
   codeStatusValues,
   redeemStatusValues,
@@ -11,6 +10,7 @@ import {
   type RedeemStatusValue,
 } from "../config/constants.js";
 import { getEnv } from "../config/env.js";
+import { registeredGameIds } from "../games/registry.js";
 import { StorageError } from "../core/errors.js";
 import type { NormalizedScrapedCode } from "../types/games.js";
 import type { CodeRedeemResult } from "../types/redeem.js";
@@ -28,7 +28,7 @@ const codeStoreEntrySchema = z.object({
 });
 
 const codeStoreSchema = z.object({
-  gameId: z.enum([GameId.GENSHIN]),
+  gameId: z.enum(registeredGameIds),
   lastScrapeDate: z.string().nullable(),
   lastScrapedAt: z.string().nullable(),
   codes: z.array(codeStoreEntrySchema),
@@ -292,13 +292,4 @@ export async function persistRedeemResult(
   };
 
   await saveCodeStore(store);
-}
-
-export async function persistRedeemResults(
-  gameId: GameIdValue,
-  results: CodeRedeemResult[],
-): Promise<void> {
-  for (const result of results) {
-    await persistRedeemResult(gameId, result);
-  }
 }

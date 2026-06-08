@@ -1,7 +1,6 @@
 import type { GameIdValue } from "../config/constants.js";
-import { RedeemError } from "../core/errors.js";
-import { redeemGenshinCodes } from "../games/genshin/redeemer.js";
-import { GameId, RedeemStatus } from "../config/constants.js";
+import { RedeemStatus } from "../config/constants.js";
+import { getGameRedeemer } from "../games/redeemerRegistry.js";
 import {
   getRedeemResumeStats,
   hasRedeemableCodes,
@@ -9,13 +8,12 @@ import {
 } from "../storage/codeStore.js";
 import type { ChromeSession } from "../types/browser.js";
 import type { RedeemSummary } from "../types/orchestrator.js";
-import type { CodeRedeemResult, GenshinLoginCredentials } from "../types/redeem.js";
+import type { CodeRedeemResult, GameLoginCredentials } from "../types/redeem.js";
 import { formatAccountLabel, logger } from "../utils/utils.js";
 
 function countResults(results: CodeRedeemResult[]): Omit<RedeemSummary, "codesAttempted"> {
   const counts = {
     redeemed: 0,
-    failed: 0,
     expired: 0,
     unavailable: 0,
     stillPending: 0,
@@ -50,7 +48,6 @@ function buildSummary(results: CodeRedeemResult[]): RedeemSummary {
   return {
     codesAttempted: results.length,
     redeemed: counts.redeemed,
-    failed: counts.failed,
     expired: counts.expired,
     unavailable: counts.unavailable,
     stillPending: counts.stillPending,
@@ -60,14 +57,12 @@ function buildSummary(results: CodeRedeemResult[]): RedeemSummary {
 async function redeemWithGameEngine(
   gameId: GameIdValue,
   session: ChromeSession,
-  credentials: GenshinLoginCredentials,
+  credentials: GameLoginCredentials,
   codes: string[],
 ): Promise<CodeRedeemResult[]> {
-  if (gameId !== GameId.GENSHIN) {
-    throw new RedeemError(`Redemption not implemented for game: ${gameId}`);
-  }
+  const redeem = getGameRedeemer(gameId);
 
-  return redeemGenshinCodes(session, {
+  return redeem(session, {
     credentials,
     codes,
     onCodeRedeemed: async (result) => {
@@ -85,7 +80,7 @@ export async function hasRedeemableCodesForGame(
 export async function redeemCodes(
   gameId: GameIdValue,
   session: ChromeSession,
-  credentials: GenshinLoginCredentials,
+  credentials: GameLoginCredentials,
 ): Promise<RedeemSummary> {
   logger.step(`Redeeming codes for ${formatAccountLabel(credentials.email)}.`);
 

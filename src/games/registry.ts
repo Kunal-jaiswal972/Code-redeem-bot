@@ -1,24 +1,44 @@
 import { GameId, type GameIdValue } from "../config/constants.js";
 import { ConfigError } from "../core/errors.js";
-import type { GameAdapter } from "../types/games.js";
-import { genshinAdapter } from "./genshin/index.js";
+import type { GameModule } from "../types/games.js";
+import { genshinGameModule } from "./genshin/index.js";
 
-const adapterEntries: [GameIdValue, GameAdapter][] = [
-  [GameId.GENSHIN, genshinAdapter],
-];
+/**
+ * Single registration point for all games.
+ * To add a game: create `src/games/<gameId>/`, then append its module here.
+ * See AGENTS.md → "Adding a new game".
+ */
+export const gameModules = [genshinGameModule] as const satisfies readonly GameModule[];
 
-const adapters = new Map<GameIdValue, GameAdapter>(adapterEntries);
+const modulesById = new Map<GameIdValue, GameModule>(
+  gameModules.map((module) => [module.id, module]),
+);
 
-export function getGameAdapter(gameId: GameIdValue): GameAdapter {
-  const adapter = adapters.get(gameId);
-
-  if (!adapter) {
-    throw new ConfigError(`No game adapter registered for gameId: ${gameId}`);
+function validateRegisteredModules(): void {
+  for (const module of gameModules) {
+    const knownIds = Object.values(GameId);
+    if (!knownIds.includes(module.id)) {
+      throw new ConfigError(
+        `Game module "${module.id}" is not declared in GameId (src/config/constants.ts).`,
+      );
+    }
   }
-
-  return adapter;
 }
 
-export function listRegisteredGameIds(): GameIdValue[] {
-  return adapterEntries.map(([gameId]) => gameId);
+validateRegisteredModules();
+
+export const registeredGameIds = gameModules.map(
+  (module) => module.id,
+) as [GameIdValue, ...GameIdValue[]];
+
+export function getGameModule(gameId: GameIdValue): GameModule {
+  const module = modulesById.get(gameId);
+
+  if (!module) {
+    throw new ConfigError(
+      `No game module registered for gameId: ${gameId}. Add it to src/games/registry.ts.`,
+    );
+  }
+
+  return module;
 }

@@ -7,7 +7,6 @@ export interface ManualRunInput {
 export interface RedeemSummary {
   codesAttempted: number;
   redeemed: number;
-  failed: number;
   expired: number;
   unavailable: number;
   stillPending: number;

@@ -5,6 +5,10 @@ export interface ParsedRedeemMessage {
   message: string;
 }
 
+/**
+ * Shared parser for Hoyoverse gift-page modal messages (Genshin, HSR, ZZZ).
+ * All use the same cdkey UI and response text patterns.
+ */
 export function parseRedeemMessage(rawMessage: string): ParsedRedeemMessage {
   const message = rawMessage.trim();
   const lower = message.toLowerCase();

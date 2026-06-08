@@ -1,9 +1,9 @@
-import type { GenshinServerValue, RedeemStatusValue } from "../config/constants.js";
+import type { RedeemStatusValue } from "../config/constants.js";
 
-export interface GenshinLoginCredentials {
+export interface GameLoginCredentials {
   email: string;
   password: string;
-  server: GenshinServerValue;
+  server: string;
 }
 
 export interface CodeRedeemResult {
@@ -12,8 +12,8 @@ export interface CodeRedeemResult {
   message: string;
 }
 
-export interface GenshinRedeemOptions {
-  credentials: GenshinLoginCredentials;
+export interface GameRedeemOptions {
+  credentials: GameLoginCredentials;
   codes: string[];
   onCodeRedeemed?: (result: CodeRedeemResult) => Promise<void>;
 }

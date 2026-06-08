@@ -5,12 +5,10 @@ import {
 import { closeBrowser } from "../browser/lifecycle.js";
 import { ExecutionMode } from "../config/constants.js";
 import { getEnv } from "../config/env.js";
-import { getGameAdapter } from "../games/registry.js";
-import { genshinConfig } from "../games/genshin/config.js";
+import { getGameModule } from "../games/registry.js";
 import type { ChromeSession } from "../types/browser.js";
 import type { ManualRunInput, RunSummary } from "../types/orchestrator.js";
 import type { ScrapeStats } from "../types/services.js";
-import { requireCredentials } from "../services/credentials.js";
 import {
   hasRedeemableCodesForGame,
   logRunSummary,
@@ -25,6 +23,7 @@ export async function runOrchestrator(
   manualInput: ManualRunInput | null = null,
 ): Promise<RunSummary> {
   const env = getEnv();
+  const gameModule = getGameModule(env.gameId);
 
   if (env.executionMode === ExecutionMode.MANUAL && manualInput === null) {
     throw new ConfigError(
@@ -33,12 +32,10 @@ export async function runOrchestrator(
   }
 
   logger.step(
-    `Auto Code Redeemer — mode: ${env.executionMode}, game: ${env.gameId}`,
+    `Auto Code Redeemer — mode: ${env.executionMode}, game: ${gameModule.displayName} (${env.gameId})`,
   );
   logger.gray(`Chrome profile: ${env.chrome.userDataDir}`);
   logger.gray(`Code store: ${env.codeStorePath}`);
-
-  const adapter = getGameAdapter(env.gameId);
 
   let session: ChromeSession | null = null;
   let scrapeStats: ScrapeStats | null = null;
@@ -54,16 +51,13 @@ export async function runOrchestrator(
     logger.gray(gate.reason);
 
     if (gate.shouldScrape) {
-      scrapeStats = await runScrape(adapter, {
-        gameId: env.gameId,
-        source: genshinConfig.source,
-      });
+      scrapeStats = await runScrape(env.gameId);
       scraped = true;
     } else {
       logger.info("Skipping scrape step.");
     }
 
-    const credentials = requireCredentials(env.genshin);
+    const credentials = env.credentials;
     const shouldLaunchBrowser = await hasRedeemableCodesForGame(env.gameId);
 
     if (!shouldLaunchBrowser) {

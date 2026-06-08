@@ -7,7 +7,7 @@
 ## Phase 7 — Azure VM / Docker Deployment ⏳ NOT STARTED
 
 - One container or VM per Hoyoverse account
-- Separate `.env` + `CODE_STORE_PATH` + Chrome profile per instance
+- Separate `.env` + `CODE_STORE_BASE_PATH` + Chrome profile per instance
 
 ---
 

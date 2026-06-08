@@ -1,11 +1,11 @@
 import type { Browser, Page } from "puppeteer-core";
-import { Delays, RedeemStatus } from "../../config/constants.js";
+import { Delays, RedeemStatus, type GenshinServerValue } from "../../config/constants.js";
 import { RedeemError } from "../../core/errors.js";
 import type { ChromeSession } from "../../types/browser.js";
 import type {
   CodeRedeemResult,
-  GenshinLoginCredentials,
-  GenshinRedeemOptions,
+  GameLoginCredentials,
+  GameRedeemOptions,
 } from "../../types/redeem.js";
 import {
   formatAccountLabel,
@@ -28,8 +28,9 @@ import {
   genshinConfig,
   genshinServerNthChild,
   getServerMenuSelector,
+  isGenshinServer,
 } from "./config.js";
-import { parseRedeemMessage } from "./parseRedeemMessage.js";
+import { parseRedeemMessage } from "../hoyoverse/parseRedeemMessage.js";
 
 async function isLoggedIn(page: Page): Promise<boolean> {
   const userButton = await waitUntil(
@@ -143,7 +144,7 @@ async function ensureLoggedIn(
 
 async function selectServer(
   page: Page,
-  server: GenshinLoginCredentials["server"],
+  server: GenshinServerValue,
 ): Promise<void> {
   const nthChild = genshinServerNthChild[server];
   const serverSelector = getServerMenuSelector(nthChild);
@@ -340,7 +341,7 @@ async function redeemSingleCode(
 
 export async function redeemGenshinCodes(
   session: ChromeSession,
-  options: GenshinRedeemOptions,
+  options: GameRedeemOptions,
 ): Promise<CodeRedeemResult[]> {
   const { browser } = session;
   const { credentials, codes } = options;
@@ -367,7 +368,7 @@ export async function redeemGenshinCodes(
     credentials.email,
     credentials.password,
   );
-  await selectServer(page, credentials.server);
+  await selectServer(page, isGenshinServer(credentials.server));
 
   const results: CodeRedeemResult[] = [];
 

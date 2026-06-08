@@ -1,8 +1,5 @@
-import type {
-  ExecutionModeValue,
-  GameIdValue,
-  GenshinServerValue,
-} from "../config/constants.js";
+import type { ExecutionModeValue, GameIdValue } from "../config/constants.js";
+import type { GameLoginCredentials } from "./redeem.js";
 
 export interface ChromeEnvConfig {
   executablePath: string;
@@ -11,16 +8,10 @@ export interface ChromeEnvConfig {
   headless: boolean;
 }
 
-export interface GenshinEnvConfig {
-  email: string;
-  password: string;
-  server: GenshinServerValue;
-}
-
 export interface AppEnv {
   executionMode: ExecutionModeValue;
   gameId: GameIdValue;
   codeStorePath: string;
   chrome: ChromeEnvConfig;
-  genshin: GenshinEnvConfig;
+  credentials: GameLoginCredentials;
 }

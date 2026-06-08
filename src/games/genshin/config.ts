@@ -41,3 +41,13 @@ export const genshinServerNthChild: Record<GenshinServerValue, number> = {
   [GenshinServer.ASIA]: 3,
   [GenshinServer.TW_HK_MO]: 4,
 };
+
+const genshinServerValues = Object.values(GenshinServer);
+
+export function isGenshinServer(server: string): GenshinServerValue {
+  if (!genshinServerValues.includes(server as GenshinServerValue)) {
+    throw new Error(`Invalid Genshin server: ${server}`);
+  }
+
+  return server as GenshinServerValue;
+}
