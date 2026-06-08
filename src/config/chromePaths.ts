@@ -1,51 +1,118 @@
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import { ConfigError } from "../core/errors.js";
 
-function getChromeCandidates(): string[] {
+/** Built in env.ts from OS paths — chromePaths.ts does not read process.env. */
+export interface ChromePathSearchContext {
+  platform: NodeJS.Platform;
+  localAppData: string;
+  programFiles?: string;
+  programFilesX86?: string;
+}
+
+export function getChromeCandidates(context: ChromePathSearchContext): string[] {
   const candidates: string[] = [];
-  const programFiles = process.env.PROGRAMFILES;
-  const programFilesX86 = process.env["PROGRAMFILES(X86)"];
-  const localAppData = process.env.LOCALAPPDATA ?? os.homedir();
 
-  if (programFiles) {
-    candidates.push(
-      path.join(programFiles, "Google", "Chrome", "Application", "chrome.exe"),
-    );
-  }
+  if (context.platform === "win32") {
+    if (context.programFiles) {
+      candidates.push(
+        path.join(
+          context.programFiles,
+          "Google",
+          "Chrome",
+          "Application",
+          "chrome.exe",
+        ),
+      );
+    }
 
-  if (programFilesX86) {
+    if (context.programFilesX86) {
+      candidates.push(
+        path.join(
+          context.programFilesX86,
+          "Google",
+          "Chrome",
+          "Application",
+          "chrome.exe",
+        ),
+      );
+    }
+
     candidates.push(
       path.join(
-        programFilesX86,
+        context.localAppData,
         "Google",
         "Chrome",
         "Application",
         "chrome.exe",
       ),
     );
+
+    return candidates;
+  }
+
+  if (context.platform === "darwin") {
+    candidates.push(
+      "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    );
+    return candidates;
   }
 
   candidates.push(
-    path.join(localAppData, "Google", "Chrome", "Application", "chrome.exe"),
+    "/usr/bin/chromium",
+    "/usr/bin/chromium-browser",
+    "/usr/bin/google-chrome",
+    "/usr/bin/google-chrome-stable",
   );
 
   return candidates;
 }
 
-export function resolveChromeExecutablePath(configuredPath?: string): string {
-  if (configuredPath && configuredPath.length > 0 && fs.existsSync(configuredPath)) {
-    return configuredPath;
+export function resolveChromeExecutablePath(
+  configuredPath: string | undefined,
+  context: ChromePathSearchContext,
+): string {
+  const trimmed = configuredPath?.trim();
+
+  if (trimmed && trimmed.length > 0 && fs.existsSync(trimmed)) {
+    return trimmed;
   }
 
-  for (const candidate of getChromeCandidates()) {
+  for (const candidate of getChromeCandidates(context)) {
     if (fs.existsSync(candidate)) {
       return candidate;
     }
   }
 
   throw new ConfigError(
-    "Could not find chrome.exe. Set CHROME_EXECUTABLE_PATH in .env.",
+    "Could not find a Chrome/Chromium executable. Set CHROME_EXECUTABLE_PATH in .env.",
   );
+}
+
+export function buildChromePathSearchContext(
+  localAppData: string,
+  platform: NodeJS.Platform,
+  programFiles?: string,
+  programFilesX86?: string,
+): ChromePathSearchContext {
+  return {
+    platform,
+    localAppData,
+    programFiles,
+    programFilesX86,
+  };
+}
+
+export function expandChromeUserDataDir(
+  configuredDir: string | undefined,
+  localAppData: string,
+): string {
+  const trimmed = configuredDir?.trim();
+
+  const resolved =
+    trimmed && trimmed.length > 0
+      ? trimmed
+      : path.join(localAppData, "Google", "Chrome", "DebugProfile");
+
+  return resolved.replace(/%LOCALAPPDATA%/gi, localAppData);
 }
