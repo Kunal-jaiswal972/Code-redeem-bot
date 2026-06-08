@@ -39,6 +39,7 @@ export const redeemStatusValues: [RedeemStatusValue, ...RedeemStatusValue[]] = [
 
 export const GameId = {
   GENSHIN: "genshin",
+  HSR: "hsr",
 } as const;
 
 export type GameIdValue = (typeof GameId)[keyof typeof GameId];
