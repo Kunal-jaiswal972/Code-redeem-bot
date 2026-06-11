@@ -1,5 +1,5 @@
 import type { RedeemTask } from "./redeemTask.js";
-import type { ScheduleSpec } from "../../scheduling/scheduleSpec.js";
+import type { ScheduleSpec } from "../schedule/scheduleSpec.js";
 
 export interface ScheduledTask {
   readonly id: string;

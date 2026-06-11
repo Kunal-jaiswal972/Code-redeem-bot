@@ -82,6 +82,28 @@
 
 ---
 
+## Phase 8.5 — Refactor & cleanup (pre–Phase 9) ✅ COMPLETE
+
+> **Goal:** Improve maintainability and adapter-ready architecture **without** new features. Complete before Phase 9. Full audit: `arch_audit.md`.
+
+| Step | Summary | Risk |
+|------|---------|------|
+| 8.5.1 ✅ | Fix layer violations (domain, browser, adapters) | Low |
+| 8.5.2 ✅ | Unify Zod schemas + move `ScheduleSpec` to domain | Low |
+| 8.5.3 ✅ | Application query services (history, tasks) | Low |
+| 8.5.4 ✅ | Extract shared JSON I/O utilities | Low |
+| 8.5.5 ✅ | Split `genshin/redeemer.ts` | Medium |
+| 8.5.6 ✅ | Scheduler strategy registry (`ScheduleDriver`) | Medium |
+| 8.5.7 ✅ | Decouple `PromptPort` from `DisplayCard` | Low |
+| 8.5.8 ✅ | Fold `services/` into `application/` | Low |
+| 8.5.9 ✅ | Split `collectDateTime.ts`; unify weekday constants | Low |
+| 8.5.10 | ~~Add unit tests~~ — skipped (not required for Phase 9) | — |
+| 8.5.11 ✅ | Remove dead code; update AGENTS.md tree | Low |
+
+**Gate:** Phase 9 may start — all required refactor steps complete.
+
+---
+
 ## Phase 9 — Multi-user auth + unified SQLite storage ⏳ NOT STARTED
 
 > **Goal:** One deployment serves multiple Hoyoverse accounts with **login / sign-up / guest** flows. **All app data** (users, codes, scheduled tasks, run history) lives in SQLite — no `codes.json` or JSON task-store fallback. Logged-in users get isolated data, stored credentials, and a dedicated Chrome profile (managed by the app, invisible to the user).

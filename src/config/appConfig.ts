@@ -9,7 +9,7 @@ import path from "node:path";
 import {
   DEFAULT_CODE_STORE_BASE_PATH,
   DEFAULT_DATABASE_URL,
-} from "../storage/codeStorePath.js";
+} from "../infrastructure/storage/stores/codeStorePath.js";
 import type { AppConfig } from "../types/appConfig.js";
 
 const DEFAULT_SCHEDULER_POLL_INTERVAL_MS = 60_000;

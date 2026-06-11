@@ -1,5 +1,5 @@
 import type { GameIdValue } from "../../config/constants.js";
-import type { GameLoginCredentials } from "../../types/redeem.js";
+import type { GameLoginCredentials } from "../credentials/gameLoginCredentials.js";
 
 export type TaskSource = "cli" | "scheduler" | "telegram";
 

@@ -1,5 +1,5 @@
 import type { Browser } from "puppeteer-core";
-import { closeActivePrompt } from "../adapters/cli/prompts.js";
+import { closeActiveUiPrompt } from "../infrastructure/ui/promptShutdown.js";
 import { Delays } from "../config/constants.js";
 import { closeSqliteDatabase } from "../infrastructure/storage/sqlite/database.js";
 import { wait } from "../utils/utils.js";
@@ -37,7 +37,7 @@ export async function closeBrowser(reason: string): Promise<void> {
 }
 
 async function shutdown(reason: string, exitCode: number): Promise<void> {
-  closeActivePrompt();
+  closeActiveUiPrompt();
 
   try {
     if (process.stdin.isTTY) {

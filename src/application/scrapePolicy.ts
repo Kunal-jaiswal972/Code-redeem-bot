@@ -1,6 +1,6 @@
 import type { GameIdValue } from "../config/constants.js";
 import type { ScrapePolicy } from "../domain/task/redeemTask.js";
-import { hasScrapedToday } from "../storage/codeStore.js";
+import { hasScrapedToday } from "../infrastructure/storage/stores/codeStore.js";
 import { getTodayRunDate } from "../utils/utils.js";
 
 export interface ScrapeDecision {

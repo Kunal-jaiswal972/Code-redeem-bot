@@ -1,21 +1,22 @@
 import { randomUUID } from "node:crypto";
 import type { RedeemTask } from "../domain/task/redeemTask.js";
 import type { ScheduledTask } from "../domain/task/scheduledTask.js";
-import type { TaskStore } from "../infrastructure/storage/taskStore.js";
+import type { ScheduledTaskStore } from "../infrastructure/storage/stores/scheduledTaskStore.js";
 import { formatScheduleInstant, logger } from "../utils/utils.js";
-import { computeNextRunAt } from "./nextRunAt.js";
+import {
+  computeNextRunAt,
+  rescheduleAfterRun,
+} from "./drivers/scheduleDrivers.js";
 import type {
   RegisterScheduleOptions,
   SchedulerTriggerHandler,
   TaskScheduler,
 } from "./scheduler.js";
-import type { ScheduleSpec } from "./scheduleSpec.js";
-
 const DEFAULT_POLL_INTERVAL_MS = 60_000;
 const MAX_DUE_TIMER_MS = 2_147_483_647;
 
 export interface SchedulerRunnerOptions {
-  store: TaskStore;
+  store: ScheduledTaskStore;
   onTrigger: SchedulerTriggerHandler;
   pollIntervalMs?: number;
 }
@@ -38,19 +39,8 @@ function materializeRedeemTask(
   };
 }
 
-function rescheduleAfterRun(
-  schedule: ScheduleSpec,
-  ranAt: Date,
-): string | null {
-  if (schedule.type === "once") {
-    return null;
-  }
-
-  return computeNextRunAt(schedule, ranAt);
-}
-
 export class SchedulerRunner implements TaskScheduler {
-  private readonly store: TaskStore;
+  private readonly store: ScheduledTaskStore;
   private readonly onTrigger: SchedulerTriggerHandler;
   private readonly pollIntervalMs: number;
   private pollTimer: NodeJS.Timeout | null = null;

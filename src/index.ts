@@ -1,25 +1,25 @@
 import { registerShutdownHandlers } from "./browser/lifecycle.js";
-import { runCliApp } from "./adapters/cli/cliApp.js";
-import { runServerApp } from "./adapters/server/serverApp.js";
+import { runCli } from "./adapters/cli/runCli.js";
+import { runServer } from "./adapters/server/runServer.js";
 import { loadEnvFile } from "./config/loadEnv.js";
 import { isCliMode, isServerMode } from "./config/cliArgs.js";
-import { initPersistence } from "./infrastructure/storage/persistence.js";
+import { initRunHistoryStore } from "./infrastructure/storage/stores/runHistoryPersistence.js";
 import { logger } from "./utils/utils.js";
 
 loadEnvFile();
-initPersistence();
+initRunHistoryStore();
 registerShutdownHandlers();
 
 function resolveMain(): Promise<void> {
   if (isServerMode()) {
-    return runServerApp();
+    return runServer();
   }
 
   if (!isCliMode()) {
     logger.warn("No mode flag — defaulting to dev CLI. Use --server for production (npm start).");
   }
 
-  return runCliApp();
+  return runCli();
 }
 
 const main = resolveMain();

@@ -1,6 +1,6 @@
 import type { RedeemTask } from "../domain/task/redeemTask.js";
 import type { ScheduledTask } from "../domain/task/scheduledTask.js";
-import type { ScheduleSpec } from "./scheduleSpec.js";
+import type { ScheduleSpec } from "../domain/schedule/scheduleSpec.js";
 
 export interface RegisterScheduleOptions {
   redeemTask: Omit<RedeemTask, "id" | "createdAt" | "source">;

@@ -1,12 +1,13 @@
 import { InlineKeyboard, type Api } from "grammy";
-import type { DisplayCard } from "../shared/display/displayCard.js";
-import { formatDisplayCardTelegramHtml } from "../shared/display/displayCard.js";
-import type { PromptChoice, PromptOptions, PromptPort } from "../ports/promptPort.js";
+import type { DisplayCard } from "../../domain/display/displayCard.js";
+import type { DisplayPresenter } from "../contracts/displayPresenter.js";
+import { formatDisplayCardTelegramHtml } from "../shared/formatters/formatDisplayCard.js";
+import type { PromptChoice, PromptOptions, PromptPort } from "../contracts/promptPort.js";
 import {
   PROMPT_BACK_LABEL,
   PromptBackError,
   TELEGRAM_BACK_CALLBACK,
-} from "../ports/promptBack.js";
+} from "../contracts/promptBack.js";
 import {
   createAdapterLogger,
   type AdapterLogger,
@@ -22,7 +23,7 @@ const CHOOSE_PREFIX = "choose:";
 const YES_PREFIX = "yesno:yes";
 const NO_PREFIX = "yesno:no";
 
-export class TelegramPromptPort implements PromptPort {
+export class TelegramPromptPort implements PromptPort, DisplayPresenter {
   private readonly api: Api;
   private readonly chatId: number;
   private readonly session: TelegramChatSession;

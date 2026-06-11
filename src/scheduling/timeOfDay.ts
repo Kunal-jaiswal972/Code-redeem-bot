@@ -34,6 +34,14 @@ export function formatTimeOfDayLabel(at: string): string {
   return `${hour12}:${minuteLabel} ${period}`;
 }
 
+export function atTimeOnDate(base: Date, at: string): Date {
+  const { hours, minutes } = parseTimeOfDay(at);
+  const next = new Date(base);
+  next.setSeconds(0, 0);
+  next.setHours(hours, minutes, 0, 0);
+  return next;
+}
+
 export function to24Hour(hour12: number, period: "AM" | "PM"): number {
   if (hour12 < 1 || hour12 > 12) {
     throw new Error(`Invalid hour ${hour12}.`);

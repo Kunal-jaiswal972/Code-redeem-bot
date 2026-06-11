@@ -3,12 +3,10 @@ import { ConfigError } from "../../domain/errors.js";
 import type { RedeemTask } from "../../domain/task/redeemTask.js";
 import type { TaskScheduler } from "../../scheduling/scheduler.js";
 import { logger } from "../../utils/utils.js";
-import type { TaskInputAdapter } from "../ports/taskInputAdapter.js";
-import {
-  createSchedulerTriggerHandler,
-  runInteractiveApp,
-} from "../shared/interactiveApp.js";
-import { PROMPT_BACK_TEXT } from "../ports/promptBack.js";
+import type { TaskInputAdapter } from "../contracts/taskInputAdapter.js";
+import { runMainMenu } from "../shared/mainMenu.js";
+import { createScheduledRunHandler } from "../shared/scheduledRunHandler.js";
+import { PROMPT_BACK_TEXT } from "../contracts/promptBack.js";
 import {
   rejectTelegramPromptBack,
   resolveTelegramCallbackData,
@@ -87,8 +85,9 @@ export function createTelegramAdapter(
 
     void (async () => {
       try {
-        await runInteractiveApp({
+        await runMainMenu({
           port,
+          display: port,
           scheduler,
           source: "telegram",
           title: "Auto Code Redeemer (Telegram)",
@@ -296,6 +295,6 @@ export async function notifyTelegramScheduledRun(
 
   const session = getTelegramChatSession(chatId);
   const port = new TelegramPromptPort(bot.api, chatId, session);
-  const handler = createSchedulerTriggerHandler(port);
+  const handler = createScheduledRunHandler(port);
   await handler(task);
 }

@@ -1,11 +1,12 @@
 import * as clack from "@clack/prompts";
-import type { PromptOptions } from "../ports/promptPort.js";
+import { registerActivePromptCloser } from "../../infrastructure/ui/promptShutdown.js";
+import type { PromptOptions } from "../contracts/promptPort.js";
 import {
   PROMPT_BACK_CHOICE_VALUE,
   PROMPT_BACK_LABEL,
   PROMPT_BACK_TEXT,
   PromptBackError,
-} from "../ports/promptBack.js";
+} from "../contracts/promptBack.js";
 
 function isBackText(answer: string): boolean {
   return answer.trim().toLowerCase() === PROMPT_BACK_TEXT;
@@ -27,9 +28,15 @@ function unwrapClackResult<T>(result: T | symbol, allowBack = false): T {
   return result;
 }
 
+/**
+ * Registered with promptShutdown on SIGINT/SIGTERM.
+ * Clack has no cancellable prompt handle — this is intentionally a no-op.
+ */
 export function closeActivePrompt(): void {
-  // Clack manages its own readline lifecycle per prompt.
+  // No-op: @clack/prompts manages readline per prompt.
 }
+
+registerActivePromptCloser(closeActivePrompt);
 
 export async function askQuestion(prompt: string, options?: PromptOptions): Promise<string> {
   if (!process.stdin.isTTY) {

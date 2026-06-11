@@ -1,5 +1,5 @@
 import type { RedeemSummary } from "./redeemSummary.js";
-import type { ScrapeStats } from "../../types/services.js";
+import type { ScrapeStats } from "./scrapeStats.js";
 
 export type RunResultStatus = "success" | "partial" | "failed";
 
