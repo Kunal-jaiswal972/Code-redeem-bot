@@ -1,29 +1,22 @@
-import type { Bot } from "grammy";
 import type { SchedulerTriggerHandler } from "../../scheduling/scheduler.js";
 import type { PromptPort } from "../contracts/promptPort.js";
-import { notifyTelegramScheduledRun } from "../telegram/createTelegramAdapter.js";
+import type { ScheduledRunNotifier } from "../contracts/scheduledRunNotifier.js";
 import { createScheduledRunHandler } from "./scheduledRunHandler.js";
 
 export interface CreateSchedulerOnTriggerOptions {
   readonly fallbackPort: PromptPort;
-  readonly getTelegramBot?: () => Bot | null;
+  readonly getScheduledRunNotifiers: () => readonly ScheduledRunNotifier[];
 }
 
 export function createSchedulerOnTrigger(
   options: CreateSchedulerOnTriggerOptions,
 ): SchedulerTriggerHandler {
-  const { fallbackPort, getTelegramBot } = options;
+  const { fallbackPort, getScheduledRunNotifiers } = options;
 
   return async (task) => {
-    const bot = getTelegramBot?.() ?? null;
-
-    if (bot !== null) {
-      const chatIdRaw = task.metadata?.telegramChatId;
-      const chatId =
-        chatIdRaw !== undefined ? Number.parseInt(chatIdRaw, 10) : Number.NaN;
-
-      if (!Number.isNaN(chatId)) {
-        await notifyTelegramScheduledRun(bot, task);
+    for (const notifier of getScheduledRunNotifiers()) {
+      if (notifier.canNotify(task)) {
+        await notifier.notify(task);
         return;
       }
     }

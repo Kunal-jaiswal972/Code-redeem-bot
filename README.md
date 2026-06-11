@@ -4,18 +4,20 @@ Node.js app that scrapes Hoyoverse promo codes and redeems them automatically vi
 
 Supported games: **Genshin Impact**, **Honkai: Star Rail** (add more under `src/games/`).
 
-Game credentials and schedules are **not** stored in `.env` — they are entered via CLI or Telegram prompts at runtime.
+Game credentials and schedules are **not** stored in `.env` — they are entered via enabled input adapters at runtime.
 
 ---
 
 ## Commands
 
 ```bash
-npm run dev            # Local dev — interactive CLI + scheduler (--cli)
-npm start              # Production — build, then scheduler + Telegram (--server)
+npm run dev            # tsx (local development)
+npm start              # build + node (production)
 npm run build          # Compile TypeScript → dist/
 npm run typecheck      # Type-check without emit
 ```
+
+Both `dev` and `start` run the **same application** (`runApplication`): scheduler plus every adapter enabled in `.env`. The only difference is `dev` uses `tsx` without a build step; `start` compiles first.
 
 ---
 
@@ -27,13 +29,24 @@ npm install
 npm run dev
 ```
 
-Use the menu: **Run now**, **Schedule**, **List**, **Cancel**, **History**, **Exit**.
+Ensure `.env` has `CLI_ADAPTER_ENABLED=true` (default). Use the menu: **Run now**, **Schedule**, **List**, **Cancel**, **History**, **Exit**.
 
-Scheduled tasks fire while the process is running (`npm run dev` or `npm start`).
+Scheduled tasks fire while the process is running.
 
 ---
 
-## Production (Telegram)
+## Input adapters
+
+Adapters are registered in `src/adapters/registry/adapterModules.ts`. Enable each via `.env`:
+
+| Variable | Adapter | Lifecycle |
+|----------|---------|-----------|
+| `CLI_ADAPTER_ENABLED=true` | Terminal menu | Foreground (blocks until Exit) |
+| `TELEGRAM_ENABLED=true` + `TELEGRAM_BOT_TOKEN` | Telegram bot | Background (polling) |
+
+With both enabled, Telegram runs in the background while the CLI menu runs in the foreground.
+
+### Telegram
 
 1. Create a bot via [@BotFather](https://t.me/BotFather) and copy the token.
 2. Add to `.env`:
@@ -41,96 +54,95 @@ Scheduled tasks fire while the process is running (`npm run dev` or `npm start`)
    TELEGRAM_BOT_TOKEN=your_token_here
    TELEGRAM_ENABLED=true
    ```
-3. Run `npm start` and send `/start` to your bot in Telegram.
+3. Run `npm run dev` or `npm start` and send `/start` to your bot.
 
-| `.env` | Effect |
-|--------|--------|
-| `TELEGRAM_BOT_TOKEN` set | Bot enabled (default) |
-| `TELEGRAM_ENABLED=false` | Disable bot; scheduler-only |
+Scheduled runs notify the Telegram chat when `telegramChatId` is stored in task metadata.
 
-Same menu as CLI: run now, schedule, list, cancel, history. Scheduled runs notify the Telegram chat when `telegramChatId` is stored in task metadata.
-
----
-
-## Docker deployment
+### Production (Docker)
 
 ```bash
 cp .env.example .env
-# Set TELEGRAM_BOT_TOKEN and Docker paths (see .env.example prod notes)
+# Set TELEGRAM_BOT_TOKEN; set CLI_ADAPTER_ENABLED=false for headless containers
 
 cd deploy
 docker compose up --build
 ```
 
-- `docker-compose.yml` loads `../.env` from the repo root.
-- Container runs `npm start` (build + server; scheduler + Telegram if configured).
-- Mount `/data` for SQLite (`redeemer.db`), per-game `codes.json`, and Chrome profile.
-
 ---
 
 ## Architecture
 
-All input sources produce the same `RedeemTask` and run through one pipeline. The redeem workflow does not know or care how the task was triggered.
+All input sources produce the same `RedeemTask` and run through one pipeline.
 
 ```text
 ┌──────────────────────────────────────────────────────────┐
-│  INPUT ADAPTERS                                          │
-│  CLI (dev)  │  Telegram (prod)  │  Scheduler (trigger)   │
-└─────────────┴───────────────────┴────────────────────────┘
+│  INPUT ADAPTERS (registry)                               │
+│  CLI  │  Telegram  │  (future: Discord, HTTP API, …)     │
+└─────────────┴────────────────────────────────────────────┘
                               │
                               ▼
                  ┌────────────────────────┐
                  │  TaskFactory           │
-                 │  validates → RedeemTask│
                  └───────────┬────────────┘
-                             │
                              ▼
                  ┌────────────────────────┐
-                 │  runTask / Workflow    │
-                 │  scrape → redeem       │
+                 │  runRedeemTask         │
+                 │  executeRedeemRun      │
                  └────────────────────────┘
 ```
 
-**Design rule:** Adapters only collect input and display output. All redeem logic lives in `application/redeemWorkflow.ts`.
+**Design rule:** Adapters only collect input and display output. All redeem logic lives in `application/executeRedeemRun.ts`.
 
 `RedeemTask.source`: `"cli"` | `"telegram"` | `"scheduler"`.
-
-### Pipeline
-
-```text
-Adapter → TaskFactory.createRedeemTask → runTask → redeemWorkflow
-```
 
 ### Folder structure
 
 ```text
 src/
-├── index.ts                 # bootstrap — dev CLI or production server
-├── config/                  # appConfig, env loading, Chrome paths
-├── domain/                  # RedeemTask, ScheduledTask, RunResult, errors
-├── application/             # taskFactory, taskExecutor, redeemWorkflow, scrapePolicy
-├── scheduling/              # SchedulerRunner, scheduleSpec, nextRunAt
-├── infrastructure/storage/  # SQLite task store, run history
-├── storage/                 # per-game codes.json
+├── index.ts                      # bootstrap → runApplication()
 ├── adapters/
-│   ├── cli/                 # terminal UI (inquirer)
-│   ├── telegram/          # grammY bot
-│   ├── server/              # production bootstrap
-│   ├── ports/               # PromptPort, TaskInputAdapter
-│   └── shared/              # menu, flows, collectors (CLI + Telegram)
-├── games/<gameId>/          # scraper + redeemer plug-ins
-├── browser/                 # Puppeteer / Chrome lifecycle
-└── services/                # scrapeService, redemptionService
+│   ├── registry/                 # adapterModules.ts, runApplication.ts
+│   ├── cli/                      # CLI adapter module + Clack ports
+│   ├── telegram/                 # Telegram adapter module + grammY
+│   ├── contracts/                # PromptPort, TaskInputAdapter, …
+│   └── shared/                   # mainMenu, flows, prompts, formatters
+├── application/                  # executeRedeemRun, runRedeemTask, queries
+├── scheduling/                   # SchedulerRunner, schedule drivers
+├── infrastructure/storage/       # SQLite, code store
+├── games/<gameId>/               # scraper + redeemer plug-ins
+└── browser/                      # Puppeteer lifecycle
 ```
 
-### `adapters/ports/`
+Contributor rules: **[AGENTS.md](./AGENTS.md)**. Implementation tracking: **[PLAN.md](./PLAN.md)**.
 
-- **`PromptPort`** — choice, question, yes/no, username, password (CLI = inquirer, Telegram = messages/buttons)
-- **`TaskInputAdapter`** — `start()` / `stop()` for long-running inputs (Telegram bot)
+---
 
-### `adapters/server/`
+## Adding a new input adapter
 
-Production entry (`runServerApp`): starts scheduler, starts Telegram when configured, registers shutdown hooks.
+1. Create `src/adapters/<name>/<name>AdapterModule.ts` implementing `AdapterModule`:
+   - `isEnabled(appConfig)` — read a new `.env` flag from `appConfig.ts`
+   - `lifecycle`: `"background"` (Discord, HTTP) or `"foreground"` (CLI)
+   - `create()` — return `{ adapter: TaskInputAdapter, scheduledRunNotifier? }`
+2. Append the module to `src/adapters/registry/adapterModules.ts`
+3. Add env vars to `appConfig.ts`, `.env.example`, and this README
+
+Shared menu flows (`runMainMenu`, `runNowMenuFlow`, …) work for any adapter that implements `PromptPort` + `DisplayPresenter`.
+
+### Future HTTP API adapter (not implemented)
+
+There is **no HTTP server** in this repo today. To add a REST API later:
+
+1. Create `src/adapters/http/httpAdapterModule.ts` with `lifecycle: "background"`
+2. Implement `TaskInputAdapter.start()` to bind an HTTP server (Express/Fastify) and return without blocking
+3. Add thin routes that call `application/` services directly (`runRedeemTask`, `scheduledTaskQueries`, …) — most endpoints do **not** need `PromptPort`
+4. Add `API_ENABLED`, `API_PORT`, and auth env vars to `appConfig.ts`
+5. Register `httpAdapterModule` in `adapterModules.ts`
+
+Optional: WebSocket + `PromptPort` for interactive API sessions.
+
+### Future Discord adapter
+
+Same pattern as Telegram: `discordAdapterModule.ts`, `DiscordPromptPort`, `ScheduledRunNotifier` for `discordChannelId` metadata, register in `adapterModules.ts`.
 
 ---
 
@@ -152,6 +164,7 @@ Copy `.env.example` → `.env`. Application config only — no game credentials.
 
 | Variable | Purpose |
 |----------|---------|
+| `CLI_ADAPTER_ENABLED` | Terminal menu (`true` / `false`, default `true`) |
 | `CODE_STORE_BASE_PATH` | Base dir for per-game `codes.json` |
 | `DATABASE_URL` | `file:...` (SQLite) or `json:...` (fallback) |
 | `SCHEDULER_POLL_INTERVAL_MS` | Scheduler poll interval (default 60000) |
@@ -159,15 +172,9 @@ Copy `.env.example` → `.env`. Application config only — no game credentials.
 | `TELEGRAM_BOT_TOKEN` | Bot token from @BotFather |
 | `TELEGRAM_ENABLED` | `false` to disable bot while keeping token |
 
-See `.env.example` for per-variable **dev vs prod** notes.
-
-Task data (game, username, password, server, schedule) lives on `RedeemTask` / SQLite rows — **not** in `.env`.
-
 ---
 
 ## Scrape policy
-
-Policy is on the task, not on a “manual vs cron” mode:
 
 | Source | Typical policy |
 |--------|----------------|
@@ -180,29 +187,12 @@ Policy is on the task, not on a “manual vs cron” mode:
 ## Adding a new game
 
 1. Add id to `GameId` in `src/config/constants.ts`
-2. Create `src/games/<gameId>/` — `index.ts`, `config.ts`, `scraper.ts`, `redeemer.ts`
+2. Create `src/games/<gameId>/` — `genshinModule.ts`, `config.ts`, `scraper.ts`, `redeemer.ts`
 3. Register in `src/games/registry.ts`
-
-Reuse `src/games/hoyoverse/parseRedeemMessage.ts` for Hoyoverse gift pages.
-
----
-
-## Future (not implemented)
-
-| Feature | Description |
-|---------|-------------|
-| REST API | `POST /api/v1/tasks/run`, schedule, list, cancel, run history |
-| Discord bot | Same `RedeemTask` pipeline via adapter |
-| Web dashboard | Browser UI for tasks and history |
-| Email reporting | Post-run summary via `WorkflowEvent` hook |
-| Integration tests | CLI run-now and schedule → scheduler → workflow |
-| Multi-user + unified SQLite | Phase 9 — all data in SQLite, per-user codes + `DebugProfile/<username>` |
-| Azure deployment | Headless verify in container, VM/Container Apps, instance volumes |
-Implementation tracking: **[PLAN.md](./PLAN.md)**. Contributor rules: **[AGENTS.md](./AGENTS.md)**.
 
 ---
 
 ## Stack
 
 - Node.js 20+, TypeScript (ESM, `NodeNext`)
-- `puppeteer-core`, `better-sqlite3`, `grammy`, `zod`, `@inquirer/prompts`
+- `puppeteer-core`, `better-sqlite3`, `grammy`, `zod`, `@clack/prompts`

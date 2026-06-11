@@ -54,6 +54,10 @@ const appConfigSchema = z.object({
     .max(65535)
     .default(9222),
   HEADLESS: booleanFromEnv,
+  CLI_ADAPTER_ENABLED: z
+    .string()
+    .default("true")
+    .transform((value) => /^(1|true|yes|on)$/i.test(value)),
   TELEGRAM_BOT_TOKEN: z.string().optional(),
   TELEGRAM_ENABLED: z.string().optional(),
 });
@@ -99,6 +103,7 @@ export function getAppConfig(): AppConfig {
     codeStoreBasePath: path.resolve(raw.CODE_STORE_BASE_PATH),
     databaseUrl: raw.DATABASE_URL,
     schedulerPollIntervalMs: raw.SCHEDULER_POLL_INTERVAL_MS,
+    cliAdapterEnabled: raw.CLI_ADAPTER_ENABLED,
     telegramBotToken: hasTelegramToken ? telegramToken : null,
     telegramEnabled: resolveTelegramEnabled(raw.TELEGRAM_ENABLED, hasTelegramToken),
     chrome: {

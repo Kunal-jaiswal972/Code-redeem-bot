@@ -1,11 +1,8 @@
 import { Bot, type Context } from "grammy";
-import { ConfigError } from "../../domain/errors.js";
-import type { RedeemTask } from "../../domain/task/redeemTask.js";
 import type { TaskScheduler } from "../../scheduling/scheduler.js";
 import { logger } from "../../utils/utils.js";
 import type { TaskInputAdapter } from "../contracts/taskInputAdapter.js";
 import { runMainMenu } from "../shared/mainMenu.js";
-import { createScheduledRunHandler } from "../shared/scheduledRunHandler.js";
 import { PROMPT_BACK_TEXT } from "../contracts/promptBack.js";
 import {
   rejectTelegramPromptBack,
@@ -268,33 +265,4 @@ export function createTelegramAdapter(
   };
 
   return { adapter, bot };
-}
-
-export function createTelegramAdapterFromConfig(
-  botToken: string | null,
-  scheduler: TaskScheduler,
-): TelegramAdapterBundle {
-  if (!botToken) {
-    throw new ConfigError("TELEGRAM_BOT_TOKEN is required when Telegram adapter is enabled.");
-  }
-
-  return createTelegramAdapter({ botToken, scheduler });
-}
-
-export async function notifyTelegramScheduledRun(
-  bot: Bot,
-  task: RedeemTask,
-): Promise<void> {
-  const chatIdRaw = task.metadata?.telegramChatId;
-  const chatId =
-    chatIdRaw !== undefined ? Number.parseInt(chatIdRaw, 10) : Number.NaN;
-
-  if (Number.isNaN(chatId)) {
-    return;
-  }
-
-  const session = getTelegramChatSession(chatId);
-  const port = new TelegramPromptPort(bot.api, chatId, session);
-  const handler = createScheduledRunHandler(port);
-  await handler(task);
 }

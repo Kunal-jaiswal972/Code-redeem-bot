@@ -50,16 +50,17 @@ scheduling/SchedulerRunner triggers runRedeemTask for due ScheduledTasks
 
 ```text
 src/
+├── adapters/registry/
+│   ├── adapterModules.ts      Central registry — append new adapters here
+│   ├── createEnabledAdapters.ts
+│   └── runApplication.ts      Unified bootstrap (dev + prod)
 ├── adapters/cli/
-│   ├── runCli.ts              CLI bootstrap (scheduler + TaskInputAdapter)
-│   ├── createCliAdapter.ts    CLI as TaskInputAdapter
+│   ├── cliAdapterModule.ts    CLI adapter registration
+│   ├── createCliAdapter.ts    TaskInputAdapter implementation
 │   ├── createCliPorts.ts      PromptPort + DisplayPresenter for terminal
 │   └── prompts.ts             Clack-backed prompt helpers
-├── adapters/telegram/         grammY bot (TaskInputAdapter)
-├── adapters/server/
-│   ├── runServer.ts           Production bootstrap (scheduler + adapters)
-│   └── createServerInputAdapters.ts
-├── adapters/contracts/        PromptPort, DisplayPresenter, TaskInputAdapter (interfaces only)
+├── adapters/telegram/         telegramAdapterModule + grammY bot
+├── adapters/contracts/        PromptPort, DisplayPresenter, TaskInputAdapter, ScheduledRunNotifier
 ├── adapters/shared/
 │   ├── mainMenu.ts            Main menu loop (run / schedule / list / cancel / history)
 │   ├── scheduledRunHandler.ts Scheduler fallback: run task + display result
@@ -90,7 +91,7 @@ src/
 └── browser/                   Puppeteer lifecycle
 ```
 
-New input adapters go under `src/adapters/` — define contracts in `contracts/`, implement `TaskInputAdapter` + `PromptPort` + `DisplayPresenter`. Import from concrete files; **no `index.ts` re-export barrels**.
+New input adapters: implement `AdapterModule` under `src/adapters/<name>/`, append to `adapterModules.ts`, add env flag in `appConfig.ts`. Import from concrete files; **no `index.ts` re-export barrels**.
 
 ### Runtime data paths (`src/data/` — not in git)
 
@@ -108,8 +109,8 @@ Override via `CODE_STORE_BASE_PATH` and `DATABASE_URL` in `.env`. Docker mounts 
 ## Commands
 
 ```bash
-npm run dev      # CLI + scheduler (--cli)
-npm start        # build + production server (--server)
+npm run dev      # tsx, hot path for local work
+npm start        # build + node dist/
 npm run build && npm run typecheck
 ```
 

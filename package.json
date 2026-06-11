@@ -6,8 +6,8 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
-    "dev": "tsx src/index.ts -- --cli",
-    "start": "npm run build && node dist/index.js -- --server",
+    "dev": "tsx src/index.ts",
+    "start": "npm run build && node dist/index.js",
     "typecheck": "cross-env NODE_OPTIONS=--max-old-space-size=4096 tsc -p tsconfig.typecheck.json --noEmit"
   },
   "keywords": [],
