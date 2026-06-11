@@ -1,5 +1,6 @@
 import type { AdapterModule } from "../../registry/adapterModules.js";
 import { createCliAdapter } from "./cliAdapter.js";
+import type { CliPorts } from "./cliPorts.js";
 
 export const cliAdapterModule: AdapterModule = {
   id: "cli",
@@ -11,10 +12,12 @@ export const cliAdapterModule: AdapterModule = {
   },
 
   create(options) {
+    const ports: CliPorts = options.terminal;
+
     return {
       adapter: createCliAdapter({
-        prompt: options.terminal.prompt,
-        display: options.terminal.display,
+        prompt: ports.prompt,
+        display: ports.display,
         scheduler: options.scheduler,
         source: "cli",
       }),

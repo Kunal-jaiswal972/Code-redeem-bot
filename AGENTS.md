@@ -57,7 +57,8 @@ src/
 ├── adapters/cli/
 │   ├── core/
 │   │   ├── cliAdapterModule.ts   CLI adapter registration
-│   │   └── cliAdapter.ts         TaskInputAdapter implementation
+│   │   ├── cliAdapter.ts         TaskInputAdapter implementation
+│   │   └── cliPorts.ts           Re-exports shared terminal ports for CLI
 │   └── lib/
 │       └── prompts.ts            Clack-backed prompt helpers
 ├── adapters/telegram/
