@@ -1,5 +1,6 @@
 import type { Browser, Page } from "puppeteer-core";
 import { Delays } from "../../config/constants.js";
+import { getAppConfig } from "../../config/appConfig.js";
 import { RedeemError } from "../../domain/errors.js";
 import {
   clickElement,
@@ -17,6 +18,7 @@ import {
   waitUntil,
 } from "../../utils/utils.js";
 import { genshinConfig } from "./config.js";
+import { captureLoginFailureDebug } from "./loginDebug.js";
 
 export async function isLoggedIn(page: Page): Promise<boolean> {
   const userButton = await waitUntil({
@@ -98,12 +100,24 @@ async function loginToGenshin(
     timeout: Delays.LONG,
     reason: "login submit",
   });
-  await wait({ ms: Delays.LONG, reason: "login request to complete" });
+
+  const loginWaitMs = getAppConfig().chrome.headless
+    ? Delays.LONG * 2
+    : Delays.LONG;
+  await wait({ ms: loginWaitMs, reason: "login request to complete" });
 
   const loggedIn = await isLoggedIn(page);
 
   if (!loggedIn) {
-    throw new RedeemError("Login failed: incorrect username or password.");
+    const screenshotPath = await captureLoginFailureDebug({ page, frame });
+    const debugNote =
+      screenshotPath !== null
+        ? ` Debug saved under /data/debug/ (copy with: docker cp deploy-redeemer-1:${screenshotPath} .)`
+        : "";
+
+    throw new RedeemError(
+      `Login failed: "Log Out" never appeared (captcha, bot check, slow page, or bad credentials — common in headless Docker).${debugNote}`,
+    );
   }
 
   logger.success(`Logged in to Hoyoverse account (${accountLabel}).`);
